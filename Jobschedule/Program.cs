@@ -107,7 +107,7 @@ static async Task DoSomethingAsync()
 
 
 // ตัวอย่าง: พิมพ์ข้อความทุก 5 วินาที
-string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
+string directoryPath = "\\\\10.99.0.21\\TopProvider HIS\\Result";
 
 
     NetworkCredential credentials = new NetworkCredential("tophis", "top#1234");
@@ -456,7 +456,7 @@ string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
 static async Task InsPicAsync()
 {
 
-    string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
+    string directoryPath = "\\\\10.99.0.21\\TopProvider HIS\\Result";
 
 
     NetworkCredential credentials = new NetworkCredential("tophis", "top#1234");
@@ -575,7 +575,7 @@ static async Task InsPicAsync()
 static async Task UpdRejectAsync()
 {
     // ตัวอย่าง: พิมพ์ข้อความทุก 5 วินาที
-    string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Reject";
+    string directoryPath = "\\\\10.99.0.21\\TopProvider HIS\\Reject";
 
 
     NetworkCredential credentials = new NetworkCredential("tophis", "top#1234");
@@ -691,7 +691,7 @@ static async Task UpdRejectAsync()
 static async Task UpdAcceptAsync()
 {
     // ตัวอย่าง: พิมพ์ข้อความทุก 5 วินาที
-    string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Accept";
+    string directoryPath = "\\\\10.99.0.21\\TopProvider HIS\\Accept";
 
 
     NetworkCredential credentials = new NetworkCredential("tophis", "top#1234");
