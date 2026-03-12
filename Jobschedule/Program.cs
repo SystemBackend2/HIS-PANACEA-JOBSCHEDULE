@@ -5,7 +5,7 @@ using System.Data;
 using System.Data.Common;
 using System.Net;
 using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
 using System.Transactions;
 using Panaceachs_api;
 using Jobschedule;
@@ -19,20 +19,66 @@ while (true)
 {
 
     // ทำสิ่งที่ต้องการทำทุก 5 วินาที
-    DoSomethingAsync();
-    InsPicAsync();
-    UpdRejectAsync();
-    UpdAcceptAsync();
-    Console.WriteLine("อ่านผลเสร็จสิ้น");
-    // หน่วงเวลา 5 วินาที
+    try
+    {
+        InsPicAsync();
+        Console.WriteLine("อ่านผลเรูป LIS สร็จสิ้น");
+    }
+    catch
+    {
+
+    }
+    try
+    {
+        DoSomethingAsync();
+        Console.WriteLine("อ่านผลเ LIS สร็จสิ้น");
+    }
+    catch
+    {
+
+    }
    
-    Thread.Sleep(60000);
+    try
+    {
+        UpdRejectAsync();
+    }
+    catch
+    {
+
+    }
+    try
+    {
+        UpdAcceptAsync();
+        Console.WriteLine("ACCEPT LIS สร็จสิ้น");
+    }
+    catch
+    {
+
+    }
+    try
+    {
+        LoginLabDoSomethingAsync();
+    }
+    catch
+    {
+
+    }
+
+    
+    // หน่วงเวลา 5 วินาที
+
+    //  Thread.Sleep(60000);
+   
 
     count++;
     if (count % 5 == 0) // ทุก 5 นาที (5 วินาที x 12 = 60 วินาที)
     {
         await Sendversion();
     }
+
+   
+
+    await Task.Delay(60000);
 }
 
 
@@ -44,34 +90,47 @@ static async Task Sendversion()
 
     // Step 1: Login and retrieve token
     string token = await Login(username, password);
-    Console.WriteLine("Token: " + token);
+    if (token != "")
+    {
+        Console.WriteLine("Token: " + token);
 
-    // Step 2: Send heartbeat with token
-    await SendHeartbeat(token);
+        // Step 2: Send heartbeat with token
+        await SendHeartbeat(token);
+    }
+    
 }
 
  static async Task<string> Login(string username, string password)
 {
-    var loginUrl = "https://sync-api.hie-rayong.everapp.io/v2/user/login";
-    var loginData = new
+
+    try
     {
-        username,
-        password
-    };
+        var loginUrl = "https://sync-api.hie-rayong.everapp.io/v2/user/login";
+        var loginData = new
+        {
+            username,
+            password
+        };
 
-    var json = JsonConvert.SerializeObject(loginData);
-    var content = new StringContent(json, Encoding.UTF8, "application/json");
-    HttpClient client = new HttpClient();
-    var response = await client.PostAsync(loginUrl, content);
-    response.EnsureSuccessStatusCode();
+        var json = JsonConvert.SerializeObject(loginData);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        HttpClient client = new HttpClient();
+        var response = await client.PostAsync(loginUrl, content);
+        response.EnsureSuccessStatusCode();
 
-    var responseString = await response.Content.ReadAsStringAsync();
-    dynamic responseObject = JsonConvert.DeserializeObject(responseString);
+        var responseString = await response.Content.ReadAsStringAsync();
+        dynamic responseObject = JsonConvert.DeserializeObject(responseString);
 
-    SendHeartbeat(responseObject.token);
+        SendHeartbeat(responseObject.token);
 
-    return responseObject.token;
+        return responseObject.token;
 
+
+    }
+    catch
+    {
+        return "";
+    }
     
 }
 
@@ -107,15 +166,21 @@ static async Task DoSomethingAsync()
 
 
 // ตัวอย่าง: พิมพ์ข้อความทุก 5 วินาที
-string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
+string directoryPath = "\\\\10.99.0.21\\TopProvider HIS\\Result";
 
 
-    NetworkCredential credentials = new NetworkCredential("tophis", "top#1234");
+  //  NetworkCredential credentials = new NetworkCredential("tophis", "tophis");
+    var credentials = new NetworkCredential("10.99.0.21\\tophis", "tophis", "10.99.0.21");
     string networkPath = directoryPath;
 
-    // Connect to the network path using the provided credentials
-    using (new Panaceachs_api.NetworkConnection(networkPath, credentials))
+
+    if (!Directory.Exists(networkPath))
     {
+        throw new DirectoryNotFoundException($"The directory path {networkPath} is not accessible.");
+    }
+    // Connect to the network path using the provided credentials
+    //using (new Panaceachs_api.NetworkConnection(networkPath, credentials))
+   // {
 
         if (!Directory.Exists(networkPath))
         {
@@ -127,36 +192,38 @@ string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
 
 
         SqlConnection connection = null;
-        if (!string.IsNullOrEmpty(connectionString))
-        {
-            connection = new SqlConnection(connectionString);
-            connection.Open();
-        }
+        SqlTransaction transaction = null;
 
 
-        // เปิดการเชื่อมต่อกับฐานข้อมูล
+    // เปิดการเชื่อมต่อกับฐานข้อมูล
 
 
-        // หาทุกไฟล์ในไดเรกทอรี
-        string[] files = Directory.GetFiles(directoryPath);
+    // หาทุกไฟล์ในไดเรกทอรี
+    string[] files = Directory.GetFiles(directoryPath);
 
         for (int i = 0; i < files.Length; i++)
         {
 
-            SqlTransaction transaction = null;
-            // SqlTransaction transaction = connection.BeginTransaction();
-            string file = files[i];
+       // SqlTransaction transaction = connection.BeginTransaction();
+        string file = files[i];
             try
             {
 
                 int success = 0;
 
+            if (!string.IsNullOrEmpty(connectionString))
+            {
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+            }
 
+            transaction = connection.BeginTransaction();
 
-                // Console.WriteLine(Path.GetFileName(file));
+            // Console.WriteLine(Path.GetFileName(file));
 
-                var TMP = File.ReadAllText(file);
-                var OBR = TMP.Split("OBR");
+            // var TMP = File.ReadAllText(file);
+            var TMP = File.ReadAllText(file, Encoding.GetEncoding("TIS-620"));
+            var OBR = TMP.Split("OBR");
 
                 // Check if OBR length is less than or equal to 1
                 if (OBR.Length <= 1)
@@ -166,10 +233,7 @@ string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
 
                 for (int j = 1; j < OBR.Length; j++)
                 {
-                    if (transaction == null)
-                    {
-                        transaction = connection.BeginTransaction();
-                    }
+                    
                     var item = OBR[j];
                     // แยกสตริง OBR ด้วยเครื่องหมาย |
                     var parts = item.Split('|');
@@ -179,6 +243,8 @@ string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
                         var testcode = parts[4].Split("^")[0];
 
                         // สร้างคำสั่ง SQL โดยใช้ข้อมูลจาก OBR
+
+                    
                         StringBuilder sql = new StringBuilder();
                         sql.AppendLine($@"SELECT * FROM TB_FINANCES AS F WITH (NOLOCK) 
                                 WHERE F.orderid = @orderid  AND F.financetype = 'L' and code = @testcode  ");
@@ -226,7 +292,7 @@ string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
 
                         sql.Clear();
                         sql.AppendLine($@"SELECT DATEDIFF(YEAR, Birthdate, GETDATE()) AS Age FROM TB_Patients  WITH (NOLOCK) WHERE patientid = @patientid  ");
-                        var Age = await connection.QueryFirstAsync<string>(sql.ToString(), new { patientid = finances.FirstOrDefault().PatientId }, transaction);
+                        var Age = await connection.QueryFirstAsync<string>(sql.ToString(), new { patientid = finances.FirstOrDefault().PatientId },transaction);
 
                         for (int x = 1; x < OBX.Length; x++)
                         {
@@ -234,10 +300,11 @@ string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
                             var parts2 = item2.Split('|');
                             if (parts2.Length > 4)
                             {
-                                var LabtestCode = parts2[3].Split("^")[0];
-                                //010079
+                             // var LabtestCode = parts2[1];
+                            var LabtestCode = parts2[3].Split("^")[0];
+                            //010079
 
-                                sql.Clear();
+                            sql.Clear();
                                 sql.AppendLine($@"SELECT count(*) FROM TBM_LAB_TESTS  WITH (NOLOCK) WHERE  expenseid = @expenseid and LabcareOutlab = 'Y' ");
                                 var checkcountLabcareOutlab = await connection.QuerySingleAsync<int>(sql.ToString(), new { expenseid = ExpenseId }, transaction);
 
@@ -293,7 +360,8 @@ string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
 
                                 var Unit = parts2[6];
                                 var ReferencesRange = parts2[7];
-                                ReferencesRange = ReferencesRange.Replace(",", "");
+                            var ReferencesUnit = parts2[6];
+                            ReferencesRange = ReferencesRange.Replace(",", "");
                                 var AbnormalFlags = parts2[8];
 
                                 //if (AbnormalFlags != "L" || AbnormalFlags != "H" || AbnormalFlags != "LL" || AbnormalFlags != "HH")
@@ -330,7 +398,8 @@ string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
 
                                 var ISeverity = "";
                                 var VSeverity = "";
-                                if (AbnormalFlags != "")
+
+                            if (AbnormalFlags != "")
                                 {
                                     ISeverity = ",Severity";
                                     VSeverity = ",@Severity";
@@ -345,13 +414,13 @@ string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
                                         FinanceId,ExpenseId,OrderId,OrderDate,OrderTime,LabOrderCode,
                                         TestId,LabResultCode,PatientId,RunHn,YearHn,Hn,ServiceId,ClinicId,
                                         AdmitId,RunAn,YearAn,An,Age,Gender,DataType,ResultValue
-                                        {INumberValue},TextValue{Iminmaxref}{ISeverity},UserCreated,DateCreated,Domain
+                                        {INumberValue},TextValue{Iminmaxref}{ISeverity},UserCreated,DateCreated,Domain,NormalLab
                                         ) 
                                         VALUES (
                                         @FinanceId,@ExpenseId,@OrderId,@OrderDate,@OrderTime,@LabOrderCode,
                                         @TestId,@LabResultCode,@PatientId,@RunHn,@YearHn,@Hn,@ServiceId,@ClinicId,
                                         @AdmitId,@RunAn,@YearAn,@An,@Age,@Gender,@DataType,@ResultValue
-                                        {VNumberValue},@TextValue{Vminmaxref}{VSeverity},@UserCreated,GETDATE(),@Domain
+                                        {VNumberValue},@TextValue{Vminmaxref}{VSeverity},@UserCreated,GETDATE(),@Domain,@NormalLab
                                         ) 
                                         
                                 ");
@@ -389,7 +458,8 @@ string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
                                         MaxNumberRef = MaxNumberRef,
                                         Domain = Domain,
                                         Severity = AbnormalFlags,
-                                        Usercreated = "LIS"
+                                        Usercreated = "LIS",
+                                        NormalLab = ReferencesRange+" "+ ReferencesUnit
                                     }, transaction);
                                 }
 
@@ -422,7 +492,7 @@ string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
                 Console.WriteLine(Path.GetFileName(file) + " ไฟล์นี้ข้อมูลไม่ถูกต้อง");
 
                 // ย้ายไฟล์ไปยังโฟลเดอร์ WaitingRecheck
-                string destinationPath = Path.Combine(directoryPath + "\\WaitingRecheck", Path.GetFileName(file));
+                string destinationPath = Path.Combine(directoryPath + "\\Waitingcheck", Path.GetFileName(file));
 
                 Console.WriteLine(destinationPath);
 
@@ -435,19 +505,16 @@ string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
                 // Move the file to the WaitingRecheck folder
                 File.Move(file, destinationPath);
 
-                if (transaction != null)
-                {
-                    transaction.Rollback();
-                }
+            if (transaction != null)
+            {
+                transaction.Rollback();
+            }
 
-                continue;
+            continue;
 
             }
 
-
-        }
-
-
+        transaction.Dispose();
         connection.Dispose();
     }
 
@@ -456,15 +523,16 @@ string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
 static async Task InsPicAsync()
 {
 
-    string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
+    string directoryPath = "\\\\10.99.0.21\\TopProvider HIS\\Result";
 
 
-    NetworkCredential credentials = new NetworkCredential("tophis", "top#1234");
+    //NetworkCredential credentials = new NetworkCredential("tophis", "tophis");
+    var credentials = new NetworkCredential("10.99.0.21\\tophis", "tophis", "10.99.0.21");
     string networkPath = directoryPath;
 
     // Connect to the network path using the provided credentials
-    using (new NetworkConnection(networkPath, credentials))
-    {
+    //using (new NetworkConnection(networkPath, credentials))
+    //{
 
         if (!Directory.Exists(networkPath))
         {
@@ -568,17 +636,17 @@ static async Task InsPicAsync()
 
         connection.Dispose();
 
-    }
+    //}
 
 }
 
 static async Task UpdRejectAsync()
 {
     // ตัวอย่าง: พิมพ์ข้อความทุก 5 วินาที
-    string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Reject";
+    string directoryPath = "\\\\10.99.0.21\\TopProvider HIS\\Reject";
 
 
-    NetworkCredential credentials = new NetworkCredential("tophis", "top#1234");
+    NetworkCredential credentials = new NetworkCredential("tophis", "tophis");
     string networkPath = directoryPath;
 
     // Connect to the network path using the provided credentials
@@ -691,10 +759,10 @@ static async Task UpdRejectAsync()
 static async Task UpdAcceptAsync()
 {
     // ตัวอย่าง: พิมพ์ข้อความทุก 5 วินาที
-    string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Accept";
+    string directoryPath = "\\\\10.99.0.21\\TopProvider HIS\\Accept";
 
 
-    NetworkCredential credentials = new NetworkCredential("tophis", "top#1234");
+    NetworkCredential credentials = new NetworkCredential("tophis", "tophis");
     string networkPath = directoryPath;
 
     // Connect to the network path using the provided credentials
@@ -711,11 +779,7 @@ static async Task UpdAcceptAsync()
 
 
         SqlConnection connection = null;
-        if (!string.IsNullOrEmpty(connectionString))
-        {
-            connection = new SqlConnection(connectionString);
-            connection.Open();
-        }
+        SqlTransaction transaction = null;
 
 
 
@@ -727,8 +791,14 @@ static async Task UpdAcceptAsync()
 
         for (int i = 0; i < files.Length; i++)
         {
+            if (!string.IsNullOrEmpty(connectionString))
+            {
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+            }
+
             string file = files[i];
-            SqlTransaction transaction = connection.BeginTransaction();
+             transaction = connection.BeginTransaction();
             try
             {
 
@@ -749,9 +819,9 @@ static async Task UpdAcceptAsync()
 
                         // สร้างคำสั่ง SQL โดยใช้ข้อมูลจาก OBR
                         StringBuilder sql = new StringBuilder();
-                        sql.AppendLine($@"UPDATE TB_FINANCES SET [STATUS] = 'A' , DateAccepted = getdate()
+                        sql.AppendLine($@"UPDATE TB_FINANCES SET [STATUS] = 'A' , DateAccepted = getdate() , LockFlag = 'Y'
                                 WHERE orderid = @orderid  AND  financetype = 'L'  ");
-                        success = await connection.ExecuteAsync(sql.ToString(), new { orderid = orderid }, transaction);
+                        success += await connection.ExecuteAsync(sql.ToString(), new { orderid = orderid }, transaction);
 
                     }
                 }
@@ -765,6 +835,7 @@ static async Task UpdAcceptAsync()
                 }
                 else
                 {
+                    File.Delete(file);
                     transaction.Rollback();
                 }
 
@@ -859,7 +930,8 @@ static async Task LoginLabDoSomethingAsync()
                 int success = 0;
                 // Console.WriteLine(Path.GetFileName(file));
 
-                var TMP = File.ReadAllText(file);
+               // var TMP = File.ReadAllText(file);
+                var TMP = File.ReadAllText(file, Encoding.GetEncoding("TIS-620"));
                 var OBR = TMP.Split("OBR");
 
                 for (int j = 1; j < OBR.Length; j++)
@@ -923,7 +995,8 @@ static async Task LoginLabDoSomethingAsync()
                             var parts2 = item2.Split('|');
                             if (parts2.Length > 4)
                             {
-                                var LabtestCode = parts2[3].Split("^")[0];
+                                //var LabtestCode = parts2[3].Split("^")[0];
+                                var LabtestCode = parts2[1];
                                 //010079
 
                                 sql.Clear();
@@ -969,6 +1042,8 @@ static async Task LoginLabDoSomethingAsync()
 
                                 var Unit = parts2[6];
                                 var ReferencesRange = parts2[7];
+                                var ReferencesUnit = parts2[6];
+                                
                                 var AbnormalFlags = parts2[8];
 
                                 //if (AbnormalFlags != "L" || AbnormalFlags != "H" || AbnormalFlags != "LL" || AbnormalFlags != "HH")
@@ -1017,13 +1092,13 @@ static async Task LoginLabDoSomethingAsync()
                                         FinanceId,ExpenseId,OrderId,OrderDate,OrderTime,LabOrderCode,
                                         TestId,LabResultCode,PatientId,RunHn,YearHn,Hn,ServiceId,ClinicId,
                                         AdmitId,RunAn,YearAn,An,Age,Gender,DataType,ResultValue
-                                        {INumberValue},TextValue{Iminmaxref}{ISeverity},UserCreated,DateCreated,Domain
+                                        {INumberValue},TextValue{Iminmaxref}{ISeverity},UserCreated,DateCreated,Domain,NormalLab
                                         ) 
                                         VALUES (
                                         @FinanceId,@ExpenseId,@OrderId,@OrderDate,@OrderTime,@LabOrderCode,
                                         @TestId,@LabResultCode,@PatientId,@RunHn,@YearHn,@Hn,@ServiceId,@ClinicId,
                                         @AdmitId,@RunAn,@YearAn,@An,@Age,@Gender,@DataType,@ResultValue
-                                        {VNumberValue},@TextValue{Vminmaxref}{VSeverity},@UserCreated,GETDATE(),@Domain
+                                        {VNumberValue},@TextValue{Vminmaxref}{VSeverity},@UserCreated,GETDATE(),@Domain,@NormalLab
                                         ) 
                                         
                                 ");
@@ -1058,7 +1133,8 @@ static async Task LoginLabDoSomethingAsync()
                                     MaxNumberRef = MaxNumberRef,
                                     Domain = Domain,
                                     Severity = AbnormalFlags,
-                                    Usercreated = "LIS"
+                                    Usercreated = "LIS",
+                                    NormalLab = ReferencesRange + " " + ReferencesUnit
                                 }, transaction);
                             }
                         }
@@ -1077,6 +1153,25 @@ static async Task LoginLabDoSomethingAsync()
             {
 
                 Console.WriteLine(Path.GetFileName(file) + " ไฟล์นี้ข้อมูลไม่ถูกต้อง");
+                string destinationPath = Path.Combine(directoryPath + "\\WaitingRecheck", Path.GetFileName(file));
+
+                Console.WriteLine(destinationPath);
+
+                if (File.Exists(destinationPath))
+                {
+                    // If it exists, delete it before moving the new file
+
+                    File.Delete(destinationPath);
+                }
+
+                // Move the file to the WaitingRecheck folder
+                File.Move(file, destinationPath);
+
+                if (transaction != null)
+                {
+                    transaction.Rollback();
+                }
+
                 continue;
 
             }
