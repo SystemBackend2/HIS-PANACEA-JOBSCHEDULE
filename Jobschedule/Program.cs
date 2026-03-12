@@ -166,8 +166,8 @@ static async Task DoSomethingAsync()
 {
 
 
-    // ตัวอย่าง: พิมพ์ข้อความทุก 5 วินาที
-    string directoryPath = "\\\\10.99.0.21\\TopProvider HIS\\Result";
+// ตัวอย่าง: พิมพ์ข้อความทุก 5 วินาที
+string directoryPath = "\\\\192.168.111.5\\TopProvider HIS\\Result";
 
 
     //  NetworkCredential credentials = new NetworkCredential("tophis", "tophis");
